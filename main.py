@@ -6,7 +6,7 @@ import dotenv
 import discord
 
 import ollama
-import threading
+import asyncio
 #------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------#
@@ -21,8 +21,8 @@ settings = json.load(open(SETTINGS_FILE)) # { "auto": False, "auto_level": 0 }
 #------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------#
-NORMAL_PROMPT = 'You are a misinformation detector who takes a fact and returns a short response based on the accuracy of the statement.'
-async def check_message_thread(message, statement):
+NORMAL_PROMPT = 'You are a misinformation detector who takes a fact and returns a short response justifying if the fact is true, partially true, partially false, or false.'
+async def check_message_thread(message, client, statement):
     await message.add_reaction("👀")
 
     ollama_client = ollama.Client(host=HOST)
@@ -31,18 +31,19 @@ async def check_message_thread(message, statement):
         { "role": "user",   "content": statement     }
     ]
     response = ollama_client.chat(model=MODEL, messages=messages)
-    content = response["messages"]["content"]
+    content = response["message"]["content"]
+    print(f"'{content}'")
 
-    message.reply(content)
+    await message.remove_reaction("👀", client.user)
+    await message.reply(content)
 
-def check_message(message, statement):
-    t = threading.Thread(target=check_message_thread, args=(message, statement))
-    t.start()
+def check_message(message, client, statement):
+    asyncio.create_task(check_message_thread(message, client, statement))
 #------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------#
 AUTO_PROMPT = "You are a misinformation detector who takes a fact and returns a number, 1 through 6, where 1 is a completely true statement and 6 is a completely false statement. Only return this number. Check accurately and do not return any other information."
-async def auto_check_message_thread(message):
+async def auto_check_message_thread(message, client):
     await message.add_reaction("👀")
 
     ollama_client = ollama.Client(host=HOST)
@@ -51,7 +52,8 @@ async def auto_check_message_thread(message):
         { "role": "user",   "content": message.content }
     ]
     response = ollama_client.chat(model=MODEL, messages=messages)
-    content = response["messages"]["content"]
+    content = response["message"]["content"]
+    print(f"'{content}'")
 
     emoji_map = {
         "0": "0️⃣",
@@ -71,11 +73,10 @@ async def auto_check_message_thread(message):
     else:
         await message.add_reaction("❓")
 
-    await message.remove_reaction("👀")
+    await message.remove_reaction("👀", client.user)
 
-def auto_check_message(message):
-    t = threading.Thread(target=auto_check_message_thread, args=(message,))
-    t.start()
+def auto_check_message(message, client):
+    asyncio.create_task(auto_check_message_thread(message, client))
 #------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------#
@@ -93,15 +94,12 @@ async def send_mode(message):
     await reply(message, mode_str)
 
 async def help_message(message):
-    help_str = """
-    ```
-    !help: Display this message.
-    !check [statement]: Check the given statement for plagiarism.
-    !auto on: Enable auto checking.
-    !auto off: Disable auto checking.
-    !auto level [level]: Set the auto checking level.
-    ```
-    """
+    help_str = """`!help`: Display this message.
+`!check` # reply to a message to check the truth of the statement
+`!check <statement>` # check the truth of the statement
+`!auto on` # enable auto checking
+`!auto off` # disable auto checking
+`!auto level <level>` # only flag statements with a level greater than or equal to the given level (1-6)"""
     await reply(message, help_str)
 #------------------------------------------------------------------------------#
 
@@ -124,10 +122,10 @@ async def on_message(message):
             await help_message(message)
         case ["!check"] if message.reference:
             statement = message.reference.resolved.content
-            check_message(message, statement)
+            check_message(message, client, statement)
         case ["!check", *statement]:
             statement = " ".join(statement)
-            check_message(message, statement)
+            check_message(message, client, statement)
         case ["!auto", "on"]:
             settings["auto"] = True
             save_mode()
@@ -136,14 +134,15 @@ async def on_message(message):
             settings["auto"] = False
             save_mode()
             await send_mode(message)
-        case ["!auto", "level", level] if level.isdigit() and 0 <= int(level) <= 6:
+        case ["!auto", "level", level] if level.isdigit() and 1 <= int(level) <= 6:
             settings["auto_level"] = int(level)
             save_mode()
             await send_mode(message.channel)
-        case _ if settings["auto"]: 
-            auto_check_message(message)
-        case _:
+        case _ if message.content.startswith("!"):
             await reply(message, "Invalid command. Use !help for a list of commands.")
+        case _ if settings["auto"]: 
+            auto_check_message(message, client)
+        case _: pass
 
 client.run(TOKEN)
 #------------------------------------------------------------------------------#
