@@ -12,12 +12,12 @@ import threading
 #------------------------------------------------------------------------------#
 dotenv.load_dotenv()
 
-MODE_FILE = "mode.json"
+SETTINGS_FILE = "settings.json"
 MODEL = 'qwen2.5:0.5b'
 HOST = os.getenv('OLLAMA_HOST', "http://localhost:11434")
 TOKEN = os.getenv('DISCORD_TOKEN', "")
 
-mode = json.load(open(MODE_FILE)) # { "auto": False, "auto_level": 0 }
+settings = json.load(open(SETTINGS_FILE)) # { "auto": False, "auto_level": 0 }
 #------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------#
@@ -64,7 +64,7 @@ async def auto_check_message_thread(message):
     }
     emoji = emoji_map.get(content, None)
     if emoji:
-        if int(content) >= mode["auto_level"]:
+        if int(content) >= settings["auto_level"]:
             await message.add_reaction(emoji)
         else:
             await message.add_reaction("✅")
@@ -80,14 +80,14 @@ def auto_check_message(message):
 
 #------------------------------------------------------------------------------#
 def save_mode():
-    json.dump(mode, open(MODE_FILE, "w"))
+    json.dump(settings, open(SETTINGS_FILE, "w"))
 
 async def reply(message, content):
     await message.reply(content, allowed_mentions=discord.AllowedMentions.none())
 
 async def send_mode(message):
-    if mode["auto"]:
-        mode_str = f"Auto checking is enabled with a level of {mode['auto_level']}."
+    if settings["auto"]:
+        mode_str = f"Auto checking is enabled with a level of {settings['auto_level']}."
     else:
         mode_str = "Auto checking is disabled."
     await reply(message, mode_str)
@@ -129,18 +129,18 @@ async def on_message(message):
             statement = " ".join(statement)
             check_message(message, statement)
         case ["!auto", "on"]:
-            mode["auto"] = True
+            settings["auto"] = True
             save_mode()
             await send_mode(message)
         case ["!auto", "off"]:
-            mode["auto"] = False
+            settings["auto"] = False
             save_mode()
             await send_mode(message)
         case ["!auto", "level", level] if level.isdigit() and 0 <= int(level) <= 6:
-            mode["auto_level"] = int(level)
+            settings["auto_level"] = int(level)
             save_mode()
             await send_mode(message.channel)
-        case _ if mode["auto"]: 
+        case _ if settings["auto"]: 
             auto_check_message(message)
         case _:
             await reply(message, "Invalid command. Use !help for a list of commands.")
