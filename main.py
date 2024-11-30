@@ -14,7 +14,7 @@ dotenv.load_dotenv()
 
 MODE_FILE = "mode.json"
 MODEL = 'qwen2.5:0.5b'
-HOST = os.getenv('OLLAMA_HOST', "localhost:11434")
+HOST = os.getenv('OLLAMA_HOST', "http://localhost:11434")
 TOKEN = os.getenv('DISCORD_TOKEN', "")
 
 mode = json.load(open(MODE_FILE)) # { "auto": False, "auto_level": 0 }
