@@ -21,7 +21,7 @@ settings = json.load(open(SETTINGS_FILE)) # { "auto": False, "auto_level": 0 }
 #------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------#
-NORMAL_PROMPT = ''
+NORMAL_PROMPT = 'You are a misinformation detector who takes a fact and returns a short response based on the accuracy of the statement.'
 async def check_message_thread(message, statement):
     await message.add_reaction("👀")
 
@@ -41,7 +41,7 @@ def check_message(message, statement):
 #------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------#
-AUTO_PROMPT = ''
+AUTO_PROMPT = "You are a misinformation detector who takes a fact and returns a number, 1 through 6, where 1 is a completely true statement and 6 is a completely false statement. Only return this number. Check accurately and do not return any other information."
 async def auto_check_message_thread(message):
     await message.add_reaction("👀")
 
