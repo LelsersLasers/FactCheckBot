@@ -58,9 +58,6 @@ def check_message(message, client, statement):
 #------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------#
-AUTO_PROMPT = "You are a misinformation detector who takes a fact and returns a number, 1 through 6, where 1 is a completely true statement and 6 is a completely false statement. Only return this number. Check accurately and do not return any other information."
-
-
 async def auto_check_message_thread(message, client):
     await message.add_reaction("👀")
 
