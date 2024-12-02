@@ -14,7 +14,6 @@ from openai import OpenAI
 dotenv.load_dotenv()
 
 MODEL = 'qwen2.5:0.5b'
-HOST = os.getenv('OLLAMA_HOST', "http://localhost:11434")
 TOKEN = os.getenv('DISCORD_TOKEN', "")
 AUTO_CHECK_ASSISTANT_ID = os.getenv("AUTO_CHECK_ASSISTANT_ID", "")
 MESSAGE_CHECK_ASSISTANT_ID = os.getenv("MESSAGE_CHECK_ASSISTANT_ID", "")
