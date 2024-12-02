@@ -5,8 +5,12 @@ import dotenv
 
 import discord
 
-import ollama
+# import ollama
 import asyncio
+
+from openai import OpenAI
+# AUTO_CHECK_ASSISTANT_ID=asst_cdNhh39ldmeLphGz20Zsj4zW
+# MESSAGE_CHECK_ASSISTANT_ID=asst_uwE8bACTTq15kj2TT8aHdz43
 #------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------#
@@ -16,44 +20,75 @@ SETTINGS_FILE = "settings.json"
 MODEL = 'qwen2.5:0.5b'
 HOST = os.getenv('OLLAMA_HOST', "http://localhost:11434")
 TOKEN = os.getenv('DISCORD_TOKEN', "")
+AUTO_CHECK_ASSISTANT_ID = os.getenv("AUTO_CHECK_ASSISTANT_ID", "")
+MESSAGE_CHECK_ASSISTANT_ID = os.getenv("MESSAGE_CHECK_ASSISTANT_ID", "")
 
-settings = json.load(open(SETTINGS_FILE)) # { "auto": False, "auto_level": 0 }
+settings = json.load(open(SETTINGS_FILE))  # { "auto": False, "auto_level": 0 }
+
+
+#------------------------------------------------------------------------------#
+def gpt(content: str, assistant_id: str):
+    client = OpenAI()
+    assistant_id = assistant_id
+    assistant = client.beta.assistants.retrieve(
+        assistant_id=assistant_id
+    )
+    thread = client.beta.threads.create(
+        messages=[{"role": "user", "content": content}]
+    )
+
+    run = client.beta.threads.runs.create_and_poll(
+        thread_id=thread.id,
+        assistant_id=assistant.id,
+    )
+    if run.status == 'completed':
+        messages = client.beta.threads.messages.list(thread_id=thread.id)
+        ai_response = messages.data[0].content[0].text.value
+        return ai_response
+
+
 #------------------------------------------------------------------------------#
 
-#------------------------------------------------------------------------------#
-NORMAL_PROMPT = 'You are a misinformation detector who takes a fact and returns a short response justifying if the fact is true, partially true, partially false, or false.'
+
 async def check_message_thread(message, client, statement):
     await message.add_reaction("👀")
 
-    ollama_client = ollama.Client(host=HOST)
-    messages = [
-        { "role": "system", "content": NORMAL_PROMPT },
-        { "role": "user",   "content": statement     }
-    ]
-    response = ollama_client.chat(model=MODEL, messages=messages)
-    content = response["message"]["content"]
-    print(f"'{content}'")
+    # ollama_client = ollama.Client(host=HOST)
+    # messages = [
+    #     {"role": "system", "content": NORMAL_PROMPT},
+    #     {"role": "user", "content": statement}
+    # ]
+    # response = ollama_client.chat(model=MODEL, messages=messages)
+    # content = response["message"]["content"]
+    # print(f"'{content}'")
+    content = gpt(statement, MESSAGE_CHECK_ASSISTANT_ID)
 
     await message.remove_reaction("👀", client.user)
     await message.reply(content)
 
+
 def check_message(message, client, statement):
     asyncio.create_task(check_message_thread(message, client, statement))
+
+
 #------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------#
 AUTO_PROMPT = "You are a misinformation detector who takes a fact and returns a number, 1 through 6, where 1 is a completely true statement and 6 is a completely false statement. Only return this number. Check accurately and do not return any other information."
+
+
 async def auto_check_message_thread(message, client):
     await message.add_reaction("👀")
 
-    ollama_client = ollama.Client(host=HOST)
-    messages = [
-        { "role": "system", "content": AUTO_PROMPT     },
-        { "role": "user",   "content": message.content }
-    ]
-    response = ollama_client.chat(model=MODEL, messages=messages)
-    content = response["message"]["content"]
-    print(f"'{content}'")
+    # ollama_client = ollama.Client(host=HOST)
+    # messages = [
+    #     {"role": "system", "content": AUTO_PROMPT},
+    #     {"role": "user", "content": message.content}
+    # ]
+    # response = ollama_client.chat(model=MODEL, messages=messages)
+    # content = response["message"]["content"]
+    # print(f"'{content}'")
+    content = gpt(str(message), AUTO_CHECK_ASSISTANT_ID)
 
     emoji_map = {
         "0": "0️⃣",
@@ -75,16 +110,21 @@ async def auto_check_message_thread(message, client):
 
     await message.remove_reaction("👀", client.user)
 
+
 def auto_check_message(message, client):
     asyncio.create_task(auto_check_message_thread(message, client))
+
+
 #------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------#
 def save_mode():
     json.dump(settings, open(SETTINGS_FILE, "w"))
 
+
 async def reply(message, content):
     await message.reply(content, allowed_mentions=discord.AllowedMentions.none())
+
 
 async def send_mode(message):
     if settings["auto"]:
@@ -92,6 +132,7 @@ async def send_mode(message):
     else:
         mode_str = "Auto checking is disabled."
     await reply(message, mode_str)
+
 
 async def help_message(message):
     help_str = """`!help`: Display this message.
@@ -101,6 +142,8 @@ async def help_message(message):
 `!auto off` # disable auto checking
 `!auto level <level>` # only flag statements with a level greater than or equal to the given level (1-6)"""
     await reply(message, help_str)
+
+
 #------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------#
@@ -108,9 +151,11 @@ intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
 
+
 @client.event
 async def on_ready():
     print(f'{client.user.name} has connected to Discord!')
+
 
 @client.event
 async def on_message(message):
@@ -140,9 +185,11 @@ async def on_message(message):
             await send_mode(message.channel)
         case _ if message.content.startswith("!"):
             await reply(message, "Invalid command. Use !help for a list of commands.")
-        case _ if settings["auto"]: 
+        case _ if settings["auto"]:
             auto_check_message(message, client)
-        case _: pass
+        case _:
+            pass
+
 
 client.run(TOKEN)
 #------------------------------------------------------------------------------#
