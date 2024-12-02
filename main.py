@@ -90,8 +90,7 @@ async def help_message(message):
 `!check` # reply to a message to check the truth of the statement
 `!check <statement>` # check the truth of the statement
 `!auto on` # enable auto checking
-`!auto off` # disable auto checking
-`!auto level <level>` # only flag statements with a level greater than or equal to the given level (1-6)"""
+`!auto off` # disable auto checking"""
     await reply(message, help_str)
 #------------------------------------------------------------------------------#
 

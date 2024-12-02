@@ -16,5 +16,4 @@ Using a LLM to check the truth of statements made on Discord
 
 !auto on # enable auto checking
 !auto off # disable auto checking
-!auto level <level> # only flag statements with a level greater than or equal to the given level
 ```
