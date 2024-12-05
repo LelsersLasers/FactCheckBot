@@ -1,12 +1,6 @@
-# FactCheckBot
+# Fact Check (and Bot)
 
-Using a LLM to check the truth of statements made on Discord
-
-## TODO
-
-- Prompts for Ollama
-- Actually make the Discord Bot
-- Test
+Final project for HONR 199: Millan, Shay, and Joao. Uses AI (in our case ChatGPT), to check the truth of statements. It can do it automatically in real time, or you can go back and check old statements.
 
 ## Commands
 
